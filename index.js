@@ -83,6 +83,37 @@ app.delete('/game/:id', (req, res) => {
 });
 
 
+app.put('/game/:id', (req, res) => {
+    if(isNaN(req.params.id)){
+        res.sendStatus(400);
+    } else {
+        var id = parseInt(req.params.id);
+        var game = DB.games.find(g => g.id == id);
+
+        if(game != undefined){
+
+            var { titulo, valor, ano } = req.body;
+
+            if(titulo != undefined){
+                game.titulo = titulo;
+            }
+
+            if(valor != undefined){
+                game.valor = valor;
+            }
+
+            if(ano != undefined){
+                game.ano = ano;
+            }
+
+            res.sendStatus(200);
+
+        } else {
+            res.sendStatus(404);
+        }
+    }
+});
+
 
 
 
