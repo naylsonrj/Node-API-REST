@@ -36,9 +36,22 @@ app.get('/games', (req, res) => {
     res.json(DB.games); //rota que retornam dados
 });
 
+// CRIANDO ROTA GET (trazer um ID específico)
+app.get('/games/:id', (req, res) => {
+    if(isNaN(req.params.id)){ //verifica se o id é um número ou não
+        res.sendStatus(400);         
+    } else { //se for um número
+        var id = parseInt(req.params.id); //converte o id para inteiro
+        var game = DB.games.find(g => g.id == id); //verifica se o id existe no banco de dados
 
-
-
+        if(game != undefined){ 
+            res.statusCode = 200; // requisição feita com sucesso
+            res.json(game);
+        }else{
+            res.sendStatus(404); //se não existir o id, retorna 404
+        }
+    }
+});
 
 // ENDEREÇO DA ROTA GAMES ->  http://localhost:3000/games
 app.listen(3000, () => {
