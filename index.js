@@ -2,10 +2,47 @@ const express = require("express");
 const app = express();
 const bodyParser = require("body-parser");
 const cors = require("cors");
+const jwt = require("jsonwebtoken");
+
+const JWTSecret = "Nuhauihueiah7867312093hjdhancxhioahU%$%@76879631913giygiNAYLSON";
 
 app.use(cors());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
+
+//middleware para utilizar na auth jwt
+//Toda vez que for preciso autoriza um acesso, chamamos a variável auth e colocamos ela como Middleware, posição média do request
+//Assim que é feito o processamento do middleware você precisar chamar o next()
+//O next faz com que ele passe a requisição para rota
+function auth(req, res, next){
+    const authToken = req.headers['authorization'];
+
+    if(authToken != undefined){
+
+        const bearer = authToken.split(' ');
+        var token = bearer[1];
+        console.log(token);
+
+        jwt.verify(token,JWTSecret,(err, data) => {
+            if(err){
+                res.status(401);
+                res.json({err:"Token inválido!"});
+            }else{
+                console.log(data);       
+                req.token = token;
+                req.loggedUser = {id: data.id,email: data.email};
+                req.empresa = "Naylson NodeJS";   
+                      
+                next();
+            }
+        });
+    }else{
+        res.status(401);
+        res.json({err:"Token inválido!"});
+    } 
+}
+
+
 
 var DB = {
     games: [
@@ -33,7 +70,7 @@ var DB = {
             id: 1,
             name: "Naylson",
             email: "naylsonrj@gmail.com",
-            password: "senha01",
+            password: "Bolsonaro22",
         },
         {
             id: 2,
@@ -44,10 +81,11 @@ var DB = {
     ],
 };
 
+
 // CRIANDO ROTA GET (trazer todos os dados de games)
-app.get("/games", (req, res) => {
+app.get("/games", auth, (req, res) => {
     res.statusCode = 200; // requisição feita com sucesso
-    res.json(DB.games); //rota que retornam dados
+    res.json({empresa: req.empresa,user: req.loggedUser,games: DB.games}); //rota que retornam dados
 });
 
 // CRIANDO ROTA GET (trazer um ID específico)
@@ -130,23 +168,36 @@ app.put("/game/:id", (req, res) => {
 // AUTENTICAÇÃO DE USUÁRIO
 app.post("/auth", (req, res) => {
     var { email, password } = req.body;
+
     if (email != undefined) {
-        DB.users.find((u) => u.email == email);
+        var user = DB.users.find((u) => u.email == email);
         if (user != undefined) {
             if (user.password == password) {
-                res.status = 200;
-                res.json({ token: "token falso" });
+                jwt.sign(
+                    { id: user.id, email: user.email },
+                    JWTSecret,
+                    { expiresIn: "48h" },
+                    (err, token) => {
+                        if (err) {
+                            res.status(400);
+                            res.json({ err: "Falha interna" });
+                        } else {
+                            res.status(200);
+                            res.json({ token: token });
+                        }
+                    }
+                );
             } else {
-                res.status = 401;
-                res.json({ token: "credencial invalida!" });
+                res.status(401);
+                res.json({ err: "Credenciais inválidas!" });
             }
         } else {
-            res.status = 404;
-            res.json({ token: "email nao existe" });
+            res.status(404);
+            res.json({ err: "O E-mail enviado não existe na base de dados!" });
         }
     } else {
-        res.status = 400;
-        res.json({ err: "O email enviado é inválido!!" });
+        res.status(400);
+        res.send({ err: "O E-mail enviado é inválido" });
     }
 });
 
